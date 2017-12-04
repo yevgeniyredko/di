@@ -23,6 +23,7 @@ namespace TagsCloudContainer.Tests
         public void Constructing_ShouldThrowOnNegativeCoordinates()
         {
             Action act = () => new CircularCloudLayouter(new Point(0, -1));
+
             act.ShouldThrow<ArgumentException>();
         }
 
@@ -30,7 +31,9 @@ namespace TagsCloudContainer.Tests
         public void PutNextRectangle_ShouldThrowOnRectanglesBiggerThanField()
         {
             var size = new Size(center.X * 2 + 1, center.Y * 2 + 1);
+
             Action act = () => cloudLayouter.PutNextRectangle(size);
+
             act.ShouldThrow<ArgumentException>();
         }
 
@@ -38,6 +41,7 @@ namespace TagsCloudContainer.Tests
         public void PutNextRectangle_ShouldThrowOnRectanglesWithNegativeSize()
         {
             Action act = () => cloudLayouter.PutNextRectangle(new Size(-1, -1));
+
             act.ShouldThrow<ArgumentException>();
         }
 

@@ -4,6 +4,8 @@ using System.Drawing;
 using System.Drawing.Text;
 using System.Linq;
 using TagsCloudContainer.CloudLayouter;
+using TagsCloudContainer.FontSizeCalculator;
+using TagsCloudContainer.TextColorGenerator;
 
 namespace TagsCloudContainer.ImageDrawer
 {
@@ -13,9 +15,15 @@ namespace TagsCloudContainer.ImageDrawer
         private readonly ICloudLayouterFactory cloudLayouterFactory;
         private readonly IFontSizeCalculatorFactory fontSizeCalculatorFactory;
 
+        private ITextColorGenerator ColorGenerator => imageSettings.TextColorGenerator;
+        private Size BitmapSize => imageSettings.ImageSize;
+        private FontFamily FontFamily => imageSettings.FontFamily;
+        private Color BackgroundColor => imageSettings.BackgroundColor;
+        private Point ImageCenter => new Point(BitmapSize.Width / 2, BitmapSize.Height / 2);
+
         public BitmapDrawer(
-            ImageSettings imageSettings, 
-            ICloudLayouterFactory cloudLayouterFactory, 
+            ImageSettings imageSettings,
+            ICloudLayouterFactory cloudLayouterFactory,
             IFontSizeCalculatorFactory fontSizeCalculatorFactory)
         {
             this.imageSettings = imageSettings;
@@ -25,40 +33,60 @@ namespace TagsCloudContainer.ImageDrawer
 
         public Bitmap DrawTags(IEnumerable<(string word, int count)> tags)
         {
-            var bitmapSize = imageSettings.ImageSize;
-            var center = new Point(bitmapSize.Width / 2, bitmapSize.Height / 2);
-            var cloudLayouter = cloudLayouterFactory.Create(center);
             var tagsArray = tags.OrderByDescending(t => t.count).ToArray();
             var fontSizeCalculator =
-                fontSizeCalculatorFactory.Create(tagsArray[tagsArray.Length - 1].count, tagsArray[0].count);
-            var colorGenerator = imageSettings.TextColorGenerator;
+                fontSizeCalculatorFactory.Create(tagsArray.Last().count, tagsArray[0].count);
+            var cloudLayouter = cloudLayouterFactory.Create(ImageCenter);
 
-            var bitmap = new Bitmap(bitmapSize.Width, bitmapSize.Height);
+            return DrawTags(tagsArray, fontSizeCalculator, cloudLayouter);
+        }
+
+        private Bitmap DrawTags(
+            IEnumerable<(string word, int count)> tags,
+            IFontSizeCalculator fontSizeCalculator,
+            ICloudLayouter cloudLayouter)
+        {
+            var bitmap = new Bitmap(BitmapSize.Width, BitmapSize.Height);
+
             using (var graphics = Graphics.FromImage(bitmap))
-            using (var brush = new SolidBrush(imageSettings.BackgroundColor))
+            using (var brush = new SolidBrush(BackgroundColor))
             {
                 graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-                graphics.FillRectangle(brush, new Rectangle(Point.Empty, bitmapSize));
+                graphics.FillRectangle(brush, new Rectangle(Point.Empty, BitmapSize));
 
-                foreach (var (word, count) in tagsArray)
+                foreach (var (word, count) in tags)
                 {
                     var fontSize = fontSizeCalculator.CalculateFontSize(count);
-                    var font = new Font(imageSettings.FontFamily, fontSize);
-                    brush.Color = colorGenerator.GetTextColor(fontSize);
+                    var font = new Font(FontFamily, fontSize);
+                    brush.Color = ColorGenerator.GetTextColor(fontSize);
 
-                    var rectangleSizeF = graphics.MeasureString(word, font);
-                    try
-                    {
-                        var layoutRectangle = cloudLayouter.PutNextRectangle(Size.Ceiling(rectangleSizeF));
-                        graphics.DrawString(word, font, brush, layoutRectangle);
-                    }
-                    catch (Exception)
-                    {
+                    var rectangleSize = graphics.MeasureString(word, font);
+                    if (!TryDrawWord(word, font, cloudLayouter, graphics, brush, rectangleSize))
                         break;
-                    }
                 }
             }
+
             return bitmap;
+        }
+
+        private static bool TryDrawWord(
+            string word,
+            Font font,
+            ICloudLayouter cloudLayouter,
+            Graphics graphics,
+            Brush brush,
+            SizeF rectangleSize)
+        {
+            try
+            {
+                var layoutRectangle = cloudLayouter.PutNextRectangle(Size.Ceiling(rectangleSize));
+                graphics.DrawString(word, font, brush, layoutRectangle.X, layoutRectangle.Y);
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
     }
 }

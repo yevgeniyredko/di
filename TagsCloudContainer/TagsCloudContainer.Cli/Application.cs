@@ -19,9 +19,9 @@ namespace TagsCloudContainer.Cli
             BitmapDrawer bitmapDrawer, 
             ImageFormat imageFormat)
         {
+            this.bitmapDrawer = bitmapDrawer;
             this.fileReader = fileReader;
             this.textParser = textParser;
-            this.bitmapDrawer = bitmapDrawer;
             this.imageFormat = imageFormat;
         }
 

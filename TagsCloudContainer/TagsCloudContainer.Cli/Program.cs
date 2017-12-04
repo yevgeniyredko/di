@@ -1,12 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using Castle.Windsor;
 using Castle.Facilities.TypedFactory;
 using Castle.MicroKernel.Registration;
 using CommandLine;
+using TagsCloudContainer.Cli.ConsoleOptions;
 using TagsCloudContainer.CloudLayouter;
 using TagsCloudContainer.FileReader;
+using TagsCloudContainer.FontSizeCalculator;
 using TagsCloudContainer.ImageDrawer;
 using TagsCloudContainer.TextColorGenerator;
 using TagsCloudContainer.TextParser;
@@ -36,61 +39,79 @@ namespace TagsCloudContainer.Cli
                 .AddFacility<TypedFactoryFacility>();
 
             container.Register(
-                Component.For<ImageSettings>().Instance(CreateImageSettings(options)),
-                Component.For<ImageFormat>().Instance(GetImageFormat(options)),
-                Component.For<IFileReader>().Instance(CreateFileReader(options)),
-                Component.For<ITextParser>().ImplementedBy<SingleWordInLineTextParser>(),
+                Component.For<IFileReader>().ImplementedBy(fileReaders[options.DocumentFormat]),
 
-                Component.For<ICloudLayouter>().ImplementedBy<CircularCloudLayouter>().LifestyleTransient(),
-                Component.For<ICloudLayouterFactory>().AsFactory(),
-                
-                Component.For<FontSizeCalculator>().LifestyleTransient(),
+                Component.For<ITextParser>().Instance(CreateTextParser(options)),
+                Component.For<ITextColorGenerator>().Instance(CreateTextColorGenerator(options)),
+                Component.For<ImageFormat>().Instance(imageFormats[options.ImageFormat]),
+
+                Component.For<ImageSettings>().UsingFactoryMethod(kernel => 
+                    CreateImageSettings(options, kernel.Resolve<ITextColorGenerator>())),
+
+                Component.For<IFontSizeCalculator>()
+                    .ImplementedBy(fontSizeCalculators[options.TextScale]).LifestyleTransient(),
                 Component.For<IFontSizeCalculatorFactory>().AsFactory(),
 
-                Component.For<BitmapDrawer>(),
-                
-                Component.For<Application>());
+                Component.For<ICloudLayouter>()
+                    .ImplementedBy<CircularCloudLayouter>().LifestyleTransient(),
+                Component.For<ICloudLayouterFactory>().AsFactory(),
+
+                Component.For<BitmapDrawer>().LifestyleTransient(),
+
+                Component.For<Application>().LifestyleTransient());
 
             return container.Resolve<Application>();
         }
 
-        private static ImageFormat GetImageFormat(Options options)
-        {
-            switch (options.ImageFormat)
+        private static readonly Dictionary<OutputImageFormat, ImageFormat> imageFormats
+            = new Dictionary<OutputImageFormat, ImageFormat>
             {
-                case OutputImageFormat.Png:
-                    return ImageFormat.Png;
-                case OutputImageFormat.Bmp:
-                    return ImageFormat.Bmp;
-                case OutputImageFormat.Gif:
-                    return ImageFormat.Gif;
-                case OutputImageFormat.Jpeg:
-                    return ImageFormat.Jpeg;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+                [OutputImageFormat.Bmp] = ImageFormat.Bmp,
+                [OutputImageFormat.Gif] = ImageFormat.Gif,
+                [OutputImageFormat.Jpeg] = ImageFormat.Jpeg,
+                [OutputImageFormat.Png] = ImageFormat.Png
+            };
+
+        private static readonly Dictionary<DocumentFormat, Type> fileReaders
+            = new Dictionary<DocumentFormat, Type>
+            {
+                [DocumentFormat.Txt] = typeof(TxtFileReader),
+                [DocumentFormat.Docx] = typeof(DocxFileReader)
+            };
+        
+        private static readonly Dictionary<TextScale, Type> fontSizeCalculators
+            = new Dictionary<TextScale, Type>
+            {
+                [TextScale.Linear] = typeof(LinearFontSizeCalculator),
+                [TextScale.NonLinear] = typeof(NonLinearFontSizeCalculator)
+            };
+
+
+        private static ITextParser CreateTextParser(Options options)
+        {
+            return options.BoringWords.Length > 0 
+                ? new SimpleTextParserWithCustomBoringWords(options.BoringWords) 
+                : new SimpleTextParser();
         }
 
-        private static IFileReader CreateFileReader(Options options)
+        private static ITextColorGenerator CreateTextColorGenerator(Options options)
         {
-            switch (options.DocumentFormat)
-            {
-                case DocumentFormat.Txt:
-                    return new TxtFileReader();
-                case DocumentFormat.Docx:
-                    return new DocxFileReader();
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+            if (options.TextColorMode == TextColorMode.Random)
+                return new RandomTextColorGenerator();
+
+            if (options.TextColorMode == TextColorMode.Single)
+                return new SingleTextColorGenerator(Color.FromKnownColor(options.TextColor));
+
+            return new GradientTextColorGenerator(Color.FromKnownColor(options.TextColor));    
         }
 
-        private static ImageSettings CreateImageSettings(Options options)
+        private static ImageSettings CreateImageSettings(Options options, ITextColorGenerator colorGenerator)
         {
             return new ImageSettings(
-                new Size(options.Width, options.Height), 
-                Color.FromName(options.BackgroundColor),
+                new Size(options.Width, options.Height),
+                Color.FromKnownColor(options.BackgroundColor),
                 new FontFamily(options.Font),
-                new SingleTextColorGenerator(Color.FromName(options.TextColor)));
+                colorGenerator);
         }
     }
 }

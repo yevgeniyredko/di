@@ -58,9 +58,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Application.cs" />
-    <Compile Include="DocumentFormat.cs" />
-    <Compile Include="OutputImageFormat.cs" />
-    <Compile Include="Options.cs" />
+    <Compile Include="ConsoleOptions\DocumentFormat.cs" />
+    <Compile Include="ConsoleOptions\OutputImageFormat.cs" />
+    <Compile Include="ConsoleOptions\Options.cs" />
+    <Compile Include="ConsoleOptions\TextColorMode.cs" />
+    <Compile Include="ConsoleOptions\TextScale.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
