@@ -4,11 +4,11 @@ using System.Linq;
 
 namespace TagsCloudContainer.TextParser
 {
-    public class SimpleTextParserWithCustomBoringWords : SimpleTextParser
+    public class SimpleTextParserWithoutBoringWords : SimpleTextParser
     {
         private readonly string[] boringWords;
 
-        public SimpleTextParserWithCustomBoringWords(string[] boringWords)
+        public SimpleTextParserWithoutBoringWords(string[] boringWords)
         {
             this.boringWords = boringWords;
         }

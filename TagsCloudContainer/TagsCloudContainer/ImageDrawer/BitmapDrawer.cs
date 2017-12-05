@@ -11,31 +11,28 @@ namespace TagsCloudContainer.ImageDrawer
 {
     public class BitmapDrawer
     {
-        private readonly ImageSettings imageSettings;
+        private readonly CloudImageSettings cloudImageSettings;
         private readonly ICloudLayouterFactory cloudLayouterFactory;
-        private readonly IFontSizeCalculatorFactory fontSizeCalculatorFactory;
 
-        private ITextColorGenerator ColorGenerator => imageSettings.TextColorGenerator;
-        private Size BitmapSize => imageSettings.ImageSize;
-        private FontFamily FontFamily => imageSettings.FontFamily;
-        private Color BackgroundColor => imageSettings.BackgroundColor;
+        private ITextColorGenerator ColorGenerator => cloudImageSettings.TextColorGenerator;
+        private Size BitmapSize => cloudImageSettings.ImageSize;
+        private FontFamily FontFamily => cloudImageSettings.FontFamily;
+        private Color BackgroundColor => cloudImageSettings.BackgroundColor;
         private Point ImageCenter => new Point(BitmapSize.Width / 2, BitmapSize.Height / 2);
+        private IFontSizeCalculatorFactory FontSizeCalculatorFactory => 
+            cloudImageSettings.FontSizeCalculatorFactory;
 
-        public BitmapDrawer(
-            ImageSettings imageSettings,
-            ICloudLayouterFactory cloudLayouterFactory,
-            IFontSizeCalculatorFactory fontSizeCalculatorFactory)
+        public BitmapDrawer(CloudImageSettings cloudImageSettings, ICloudLayouterFactory cloudLayouterFactory)
         {
-            this.imageSettings = imageSettings;
+            this.cloudImageSettings = cloudImageSettings;
             this.cloudLayouterFactory = cloudLayouterFactory;
-            this.fontSizeCalculatorFactory = fontSizeCalculatorFactory;
         }
 
         public Bitmap DrawTags(IEnumerable<(string word, int count)> tags)
         {
             var tagsArray = tags.OrderByDescending(t => t.count).ToArray();
             var fontSizeCalculator =
-                fontSizeCalculatorFactory.Create(tagsArray.Last().count, tagsArray[0].count);
+                FontSizeCalculatorFactory.Create(tagsArray.Last().count, tagsArray[0].count);
             var cloudLayouter = cloudLayouterFactory.Create(ImageCenter);
 
             return DrawTags(tagsArray, fontSizeCalculator, cloudLayouter);

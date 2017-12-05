@@ -5,7 +5,6 @@ using NHunspell;
 namespace TagsCloudContainer.TextParser
 {
     public class SimpleTextParser : ITextParser
-
     {
         public virtual IEnumerable<(string word, int count)> GetAllWords(IEnumerable<string> text)
         {
@@ -31,15 +30,17 @@ namespace TagsCloudContainer.TextParser
 
         private static string[] SplitToWords(string text)
         {
+            const int boringWordLength = 3;
+
             var punctuation = text
                 .Where(char.IsPunctuation)
                 .Distinct()
                 .ToArray();
-            var words = text
+            return text
                 .Split()
                 .Select(w => w.Trim(punctuation).ToLower())
-                .Where(w => w.Length > 3);
-            return words.ToArray();
+                .Where(w => w.Length > boringWordLength)
+                .ToArray();
         }
     }
 }

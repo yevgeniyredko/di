@@ -45,12 +45,15 @@ namespace TagsCloudContainer.Cli
                 Component.For<ITextColorGenerator>().Instance(CreateTextColorGenerator(options)),
                 Component.For<ImageFormat>().Instance(imageFormats[options.ImageFormat]),
 
-                Component.For<ImageSettings>().UsingFactoryMethod(kernel => 
-                    CreateImageSettings(options, kernel.Resolve<ITextColorGenerator>())),
-
                 Component.For<IFontSizeCalculator>()
                     .ImplementedBy(fontSizeCalculators[options.TextScale]).LifestyleTransient(),
                 Component.For<IFontSizeCalculatorFactory>().AsFactory(),
+
+                Component.For<CloudImageSettings>().UsingFactoryMethod(kernel => 
+                    CreateImageSettings(
+                        options, 
+                        kernel.Resolve<ITextColorGenerator>(),
+                        kernel.Resolve<IFontSizeCalculatorFactory>())),
 
                 Component.For<ICloudLayouter>()
                     .ImplementedBy<CircularCloudLayouter>().LifestyleTransient(),
@@ -90,7 +93,7 @@ namespace TagsCloudContainer.Cli
         private static ITextParser CreateTextParser(Options options)
         {
             return options.BoringWords.Length > 0 
-                ? new SimpleTextParserWithCustomBoringWords(options.BoringWords) 
+                ? new SimpleTextParserWithoutBoringWords(options.BoringWords) 
                 : new SimpleTextParser();
         }
 
@@ -105,13 +108,17 @@ namespace TagsCloudContainer.Cli
             return new GradientTextColorGenerator(Color.FromKnownColor(options.TextColor));    
         }
 
-        private static ImageSettings CreateImageSettings(Options options, ITextColorGenerator colorGenerator)
+        private static CloudImageSettings CreateImageSettings(
+            Options options, 
+            ITextColorGenerator colorGenerator,
+            IFontSizeCalculatorFactory fontSizeCalculatorFactory)
         {
-            return new ImageSettings(
+            return new CloudImageSettings(
                 new Size(options.Width, options.Height),
                 Color.FromKnownColor(options.BackgroundColor),
                 new FontFamily(options.Font),
-                colorGenerator);
+                colorGenerator, 
+                fontSizeCalculatorFactory);
         }
     }
 }

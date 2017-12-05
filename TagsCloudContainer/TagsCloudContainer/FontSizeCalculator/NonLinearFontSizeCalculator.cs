@@ -25,10 +25,14 @@ namespace TagsCloudContainer.FontSizeCalculator
                                             / (maxWordCount - minWordCount)
                                             + minFontSize);
 
-            if (maxFontSize > 32)
+            const float minMaxFontSize = 32;
+            const int minDelta = 1;
+            const int deltaDivider = 2;
+            
+            if (maxFontSize > minMaxFontSize)
                 maxFontSize -= delta;
-            if (delta > 1)
-                delta /= 2;
+            if (delta > minDelta)
+                delta /= deltaDivider;
 
             return result;
         }
