@@ -1,31 +1,19 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using NHunspell;
+using TagsCloudContainer.Infrastructure;
 
 namespace TagsCloudContainer.TextParser
 {
     public class SimpleTextParser : ITextParser
     {
-        public virtual IEnumerable<(string word, int count)> GetAllWords(IEnumerable<string> text)
+        public virtual Result<IEnumerable<(string word, int count)>> GetAllWords(IEnumerable<string> text)
         {
-            using (var hunspell = new Hunspell("ru_RU.aff", "ru_RU.dic"))
-            {
-                var result = new Dictionary<string, int>();
-                foreach (var word in text.SelectMany(SplitToWords))
-                {
-                    if (string.IsNullOrEmpty(word)) continue;
-                    
-                    var stems = hunspell.Stem(word);
-                    var stem = stems.Any() ? stems[0] : word;
-
-                    if (!result.TryGetValue(stem, out var count))
-                        count = 0;
-
-                    result[stem] = count + 1;
-                }
-                return result
-                    .Select(kvp => (kvp.Key, kvp.Value));
-            }
+            return Result.Of(() => new Hunspell("ru_RU.aff", "ru_RU.dic"))
+                .Then(hunspell => text
+                    .SelectMany(SplitToWords)
+                    .Select(word => GetStem(word, hunspell)))
+                .Then(GetStatistics);
         }
 
         private static string[] SplitToWords(string text)
@@ -41,6 +29,25 @@ namespace TagsCloudContainer.TextParser
                 .Select(w => w.Trim(punctuation).ToLower())
                 .Where(w => w.Length > boringWordLength)
                 .ToArray();
+        }
+
+        private static string GetStem(string word, Hunspell hunspell)
+        {
+            var stems = hunspell.Stem(word);
+            return stems.Any() ? stems[0] : word;
+        }
+
+        private static IEnumerable<(string word, int count)> GetStatistics(IEnumerable<string> words)
+        {
+            var result = new Dictionary<string, int>();
+            foreach (var word in words)
+            {
+                if (!result.TryGetValue(word, out var count))
+                    count = 0;
+
+                result[word] = count + 1;
+            }
+            return result.Select(kvp => (kvp.Key, kvp.Value));
         }
     }
 }

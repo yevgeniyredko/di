@@ -5,6 +5,7 @@ using System.Drawing.Text;
 using System.Linq;
 using TagsCloudContainer.CloudLayouter;
 using TagsCloudContainer.FontSizeCalculator;
+using TagsCloudContainer.Infrastructure;
 using TagsCloudContainer.TextColorGenerator;
 
 namespace TagsCloudContainer.ImageDrawer
@@ -58,7 +59,7 @@ namespace TagsCloudContainer.ImageDrawer
                     brush.Color = ColorGenerator.GetTextColor(fontSize);
 
                     var rectangleSize = graphics.MeasureString(word, font);
-                    if (!TryDrawWord(word, font, cloudLayouter, graphics, brush, rectangleSize))
+                    if (!TryDrawWord(word, font, cloudLayouter, graphics, brush, rectangleSize).IsSuccess)
                         break;
                 }
             }
@@ -66,7 +67,7 @@ namespace TagsCloudContainer.ImageDrawer
             return bitmap;
         }
 
-        private static bool TryDrawWord(
+        private static Result<None> TryDrawWord(
             string word,
             Font font,
             ICloudLayouter cloudLayouter,
@@ -74,16 +75,8 @@ namespace TagsCloudContainer.ImageDrawer
             Brush brush,
             SizeF rectangleSize)
         {
-            try
-            {
-                var layoutRectangle = cloudLayouter.PutNextRectangle(Size.Ceiling(rectangleSize));
-                graphics.DrawString(word, font, brush, layoutRectangle.X, layoutRectangle.Y);
-                return true;
-            }
-            catch (Exception)
-            {
-                return false;
-            }
+            return cloudLayouter.PutNextRectangle(Size.Ceiling(rectangleSize))
+                .Then(rect => graphics.DrawString(word, font, brush, rect.X, rect.Y));
         }
     }
 }

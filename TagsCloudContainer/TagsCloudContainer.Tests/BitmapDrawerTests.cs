@@ -7,6 +7,7 @@ using NSubstitute;
 using TagsCloudContainer.CloudLayouter;
 using TagsCloudContainer.FontSizeCalculator;
 using TagsCloudContainer.ImageDrawer;
+using TagsCloudContainer.Infrastructure;
 using TagsCloudContainer.TextColorGenerator;
 
 namespace TagsCloudContainer.Tests
@@ -45,7 +46,7 @@ namespace TagsCloudContainer.Tests
 
             cloudLayouter = Substitute.For<ICloudLayouter>();
             cloudLayouter.PutNextRectangle(Arg.Any<Size>())
-                .Returns(c => new Rectangle(Point.Empty, c.Arg<Size>()));
+                .Returns(c => new Rectangle(Point.Empty, c.Arg<Size>()).AsResult());
             cloudLayouterFactory = Substitute.For<ICloudLayouterFactory>();
             cloudLayouterFactory.Create(Arg.Any<Point>()).Returns(cloudLayouter);
 

@@ -1,14 +1,14 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using TagsCloudContainer.Infrastructure;
 
 namespace TagsCloudContainer.FileReader
 {
     public class TxtFileReader : IFileReader
     {
-        public IEnumerable<string> ReadLines(string path)
+        public Result<IEnumerable<string>> ReadLines(string path)
         {
-            return File.ReadLines(path);
+            return Result.Of(() => File.ReadLines(path));
         }
     }
 }

@@ -11,6 +11,7 @@ using TagsCloudContainer.CloudLayouter;
 using TagsCloudContainer.FileReader;
 using TagsCloudContainer.FontSizeCalculator;
 using TagsCloudContainer.ImageDrawer;
+using TagsCloudContainer.Infrastructure;
 using TagsCloudContainer.TextColorGenerator;
 using TagsCloudContainer.TextParser;
 
@@ -20,50 +21,49 @@ namespace TagsCloudContainer.Cli
     {
         static void Main(string[] args)
         {
-            var options = new Options();
+            var result =
+                from options in ParseOptions(args)
+                from application in CreateApplication(options)
+                select application.Run(options.InputFile, options.OutputFile);
 
-            if (!Parser.Default.ParseArgumentsStrict(args, options))
-            {
-                var helpText = CommandLine.Text.HelpText.AutoBuild(options);
-                Console.WriteLine(helpText);
-                return;
-            }
-
-            var application = CreateApplication(options);
-            application.Run(options.InputFile, options.OutputFile);
+            result.OnFail(Console.WriteLine);
+            result.Value.OnFail(Console.WriteLine);
         }
 
-        private static Application CreateApplication(Options options)
+        private static Result<Options> ParseOptions(string[] args)
         {
-            var container = new WindsorContainer()
-                .AddFacility<TypedFactoryFacility>();
+            var options = new Options();
 
-            container.Register(
-                Component.For<IFileReader>().ImplementedBy(fileReaders[options.DocumentFormat]),
+            return new Parser().ParseArguments(args, options)
+                ? Result.Ok(options)
+                : Result.Fail<Options>(CommandLine.Text.HelpText.AutoBuild(options));
+        }
 
-                Component.For<ITextParser>().Instance(CreateTextParser(options)),
-                Component.For<ITextColorGenerator>().Instance(CreateTextColorGenerator(options)),
-                Component.For<ImageFormat>().Instance(imageFormats[options.ImageFormat]),
+        private static Result<Application> CreateApplication(Options options)
+        {
+            return new WindsorContainer().AddFacility<TypedFactoryFacility>().AsResult()
+                .Then(container => container.Register(
+                    Component.For<IFileReader>().ImplementedBy(fileReaders[options.DocumentFormat]),
+                    Component.For<ITextParser>().Instance(CreateTextParser(options)),
+                    Component.For<ITextColorGenerator>().Instance(CreateTextColorGenerator(options)),
+                    Component.For<ImageFormat>().Instance(imageFormats[options.ImageFormat]),
 
-                Component.For<IFontSizeCalculator>()
-                    .ImplementedBy(fontSizeCalculators[options.TextScale]).LifestyleTransient(),
-                Component.For<IFontSizeCalculatorFactory>().AsFactory(),
+                    Component.For<ICloudLayouter>()
+                        .ImplementedBy<CircularCloudLayouter>().LifestyleTransient(),
+                    Component.For<ICloudLayouterFactory>().AsFactory(),
+                    Component.For<IFontSizeCalculator>()
+                        .ImplementedBy(fontSizeCalculators[options.TextScale]).LifestyleTransient(),
+                    Component.For<IFontSizeCalculatorFactory>().AsFactory(),
 
-                Component.For<CloudImageSettings>().UsingFactoryMethod(kernel => 
-                    CreateImageSettings(
-                        options, 
-                        kernel.Resolve<ITextColorGenerator>(),
-                        kernel.Resolve<IFontSizeCalculatorFactory>())),
-
-                Component.For<ICloudLayouter>()
-                    .ImplementedBy<CircularCloudLayouter>().LifestyleTransient(),
-                Component.For<ICloudLayouterFactory>().AsFactory(),
-
-                Component.For<BitmapDrawer>().LifestyleTransient(),
-
-                Component.For<Application>().LifestyleTransient());
-
-            return container.Resolve<Application>();
+                    Component.For<CloudImageSettings>().UsingFactoryMethod(kernel =>
+                        CreateImageSettings(
+                            options,
+                            kernel.Resolve<ITextColorGenerator>(),
+                            kernel.Resolve<IFontSizeCalculatorFactory>())),
+                    
+                    Component.For<BitmapDrawer>().LifestyleTransient(),
+                    Component.For<Application>().LifestyleTransient()))
+                .Then(container => container.Resolve<Application>());
         }
 
         private static readonly Dictionary<OutputImageFormat, ImageFormat> imageFormats
@@ -101,11 +101,9 @@ namespace TagsCloudContainer.Cli
         {
             if (options.TextColorMode == TextColorMode.Random)
                 return new RandomTextColorGenerator();
-
             if (options.TextColorMode == TextColorMode.Single)
                 return new SingleTextColorGenerator(Color.FromKnownColor(options.TextColor));
-
-            return new GradientTextColorGenerator(Color.FromKnownColor(options.TextColor));    
+            return new GradientTextColorGenerator(Color.FromKnownColor(options.TextColor));
         }
 
         private static CloudImageSettings CreateImageSettings(

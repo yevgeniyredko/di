@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using TagsCloudContainer.Infrastructure;
 
 namespace TagsCloudContainer.CloudLayouter
 {
@@ -12,6 +13,7 @@ namespace TagsCloudContainer.CloudLayouter
         private Point[] pointsOnSpiral;
 
         private Size FieldSize => new Size(center.X * 2, center.Y * 2);
+
         private Point[] PointsOnSpiral =>
             pointsOnSpiral ?? (pointsOnSpiral = CalculatePointsOnSpiral(center).ToArray());
 
@@ -24,31 +26,35 @@ namespace TagsCloudContainer.CloudLayouter
             this.rectangles = new List<Rectangle>();
         }
 
-        public Rectangle PutNextRectangle(Size rectangleSize)
+        public Result<Rectangle> PutNextRectangle(Size rectangleSize)
         {
+            if (rectangleSize.Width <= 0 || rectangleSize.Height <= 0)
+                return Result.Fail<Rectangle>($"Rectangle size must be positive, but was {rectangleSize}");
+
             if (rectangleSize.Width > FieldSize.Width || rectangleSize.Height > FieldSize.Height)
-                throw new ArgumentException($"Rectangle size must be smaller than field size {FieldSize}, " +
-                                            $"but was {rectangleSize}", nameof(rectangleSize));
+                return Result.Fail<Rectangle>($"Rectangle size must be smaller than field size {FieldSize}, " +
+                                              $"but was {rectangleSize}");
+
 
             foreach (var point in PointsOnSpiral)
             {
                 var rectangle = CreateRectangle(point, rectangleSize);
 
-                if (rectangles.Any(r => r.IntersectsWith(rectangle)) 
+                if (rectangles.Any(r => r.IntersectsWith(rectangle))
                     || rectangle.Left < 0 || rectangle.Top < 0
                     || rectangle.Right > FieldSize.Width || rectangle.Bottom > FieldSize.Height)
                     continue;
 
                 rectangles.Add(rectangle);
-                return rectangle;
+                return Result.Ok(rectangle);
             }
 
-            throw new InvalidOperationException("Rectangle can't be put on field");
+            return Result.Fail<Rectangle>("Rectangle can't be put on field");
         }
 
         private static IEnumerable<Point> CalculatePointsOnSpiral(
-            Point center, 
-            double coefficient = 0.5, 
+            Point center,
+            double coefficient = 0.5,
             double angleDelta = 0.2)
         {
             var angle = 0.0;
@@ -74,9 +80,6 @@ namespace TagsCloudContainer.CloudLayouter
 
         private static Rectangle CreateRectangle(Point center, Size size)
         {
-            if (size.Width <= 0 || size.Height <= 0)
-                throw new ArgumentException($"Size must be positive, but was {size}", nameof(size));
-
             var location = new Point(center.X - size.Width / 2, center.Y - size.Height / 2);
             return new Rectangle(location, size);
         }

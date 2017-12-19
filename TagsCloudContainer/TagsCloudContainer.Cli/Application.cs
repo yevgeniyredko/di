@@ -1,7 +1,8 @@
-﻿using System.Drawing.Imaging;
-using System.Linq;
+﻿using System;
+using System.Drawing.Imaging;
 using TagsCloudContainer.FileReader;
 using TagsCloudContainer.ImageDrawer;
+using TagsCloudContainer.Infrastructure;
 using TagsCloudContainer.TextParser;
 
 namespace TagsCloudContainer.Cli
@@ -25,13 +26,12 @@ namespace TagsCloudContainer.Cli
             this.imageFormat = imageFormat;
         }
 
-        public void Run(string inputFile, string outputFile)
+        public Result<None> Run(string inputFile, string outputFile)
         {
-            var input = fileReader.ReadLines(inputFile);
-            var parsed = textParser.GetAllWords(input);
-            var bmp = bitmapDrawer.DrawTags(parsed.ToArray());
-
-            bmp.Save(outputFile, imageFormat);
+            return fileReader.ReadLines(inputFile)
+                .Then(textParser.GetAllWords)
+                .Then(bitmapDrawer.DrawTags)
+                .Then(bmp => bmp.Save(outputFile, imageFormat));
         }
     }
 }

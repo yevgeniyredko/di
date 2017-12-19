@@ -28,27 +28,23 @@ namespace TagsCloudContainer.Tests
         }
 
         [Test]
-        public void PutNextRectangle_ShouldThrowOnRectanglesBiggerThanField()
+        public void PutNextRectangle_ShouldFailOnRectanglesBiggerThanField()
         {
             var size = new Size(center.X * 2 + 1, center.Y * 2 + 1);
 
-            Action act = () => cloudLayouter.PutNextRectangle(size);
-
-            act.ShouldThrow<ArgumentException>();
+            cloudLayouter.PutNextRectangle(size).IsSuccess.Should().BeFalse();
         }
 
         [Test]
-        public void PutNextRectangle_ShouldThrowOnRectanglesWithNegativeSize()
+        public void PutNextRectangle_ShouldFailOnRectanglesWithNegativeSize()
         {
-            Action act = () => cloudLayouter.PutNextRectangle(new Size(-1, -1));
-
-            act.ShouldThrow<ArgumentException>();
+            cloudLayouter.PutNextRectangle(new Size(-1, -1)).IsSuccess.Should().BeFalse();
         }
 
         [Test]
         public void PutNextRectangle_ShouldPutFirstRectangleInCenter()
         {
-            var rect = cloudLayouter.PutNextRectangle(new Size(10, 10));
+            var rect = cloudLayouter.PutNextRectangle(new Size(10, 10)).Value;
 
             rect.Contains(center).Should().BeTrue();
         }
@@ -57,7 +53,7 @@ namespace TagsCloudContainer.Tests
         public void PutNextRectangle_RectangleShouldHaveCorrectSize()
         {
             var size = new Size(11, 11);
-            var rect = cloudLayouter.PutNextRectangle(size);
+            var rect = cloudLayouter.PutNextRectangle(size).Value;
 
             rect.Size.ShouldBeEquivalentTo(size);
         }
@@ -68,7 +64,7 @@ namespace TagsCloudContainer.Tests
             int width, int height, int rectanglesCount)
         {
             var sizes = Enumerable.Repeat(new Size(width, height), rectanglesCount);
-            var rectangles = sizes.Select(s => cloudLayouter.PutNextRectangle(s)).ToList();
+            var rectangles = sizes.Select(s => cloudLayouter.PutNextRectangle(s).Value).ToList();
 
             foreach (var rectangle in rectangles)
             {

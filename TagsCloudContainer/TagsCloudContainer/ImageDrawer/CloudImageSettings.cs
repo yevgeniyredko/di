@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Drawing;
 using TagsCloudContainer.FontSizeCalculator;
 using TagsCloudContainer.TextColorGenerator;
 
@@ -19,6 +20,9 @@ namespace TagsCloudContainer.ImageDrawer
             ITextColorGenerator textColorGenerator,
             IFontSizeCalculatorFactory fontSizeCalculatorFactory)
         {
+            if (imageSize.Width <= 0 || imageSize.Height <= 0) 
+                throw new ArgumentException($"Image size must be positive, but was {imageSize}");
+
             ImageSize = imageSize;
             BackgroundColor = backgroundColor;
             FontFamily = fontFamily;

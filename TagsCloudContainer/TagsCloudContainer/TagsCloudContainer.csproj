@@ -64,6 +64,8 @@
     <Compile Include="FontSizeCalculator\LinearFontSizeCalculator.cs" />
     <Compile Include="FontSizeCalculator\IFontSizeCalculatorFactory.cs" />
     <Compile Include="ImageDrawer\CloudImageSettings.cs" />
+    <Compile Include="Infrastructure\Result.cs" />
+    <Compile Include="Infrastructure\ResultQueryExpressionExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TextColorGenerator\ITextColorGenerator.cs" />
     <Compile Include="TextColorGenerator\RandomTextColorGenerator.cs" />
