@@ -26,8 +26,7 @@ namespace TagsCloudContainer.Cli
                 from application in CreateApplication(options)
                 select application.Run(options.InputFile, options.OutputFile);
 
-            result.OnFail(Console.WriteLine);
-            result.Value.OnFail(Console.WriteLine);
+            result.Then(r => r).OnFail(Console.WriteLine);
         }
 
         private static Result<Options> ParseOptions(string[] args)

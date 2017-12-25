@@ -39,15 +39,9 @@ namespace TagsCloudContainer.TextParser
 
         private static IEnumerable<(string word, int count)> GetStatistics(IEnumerable<string> words)
         {
-            var result = new Dictionary<string, int>();
-            foreach (var word in words)
-            {
-                if (!result.TryGetValue(word, out var count))
-                    count = 0;
-
-                result[word] = count + 1;
-            }
-            return result.Select(kvp => (kvp.Key, kvp.Value));
+            return words
+                .GroupBy(w => w)
+                .Select(g => (g.Key, g.Count()));
         }
     }
 }
